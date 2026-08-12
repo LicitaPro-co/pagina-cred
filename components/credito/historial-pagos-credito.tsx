@@ -8,6 +8,7 @@ export type PagoCreditoCliente = {
   estado: string;
   valor_pago: number;
   abono_capital: number;
+  abono_interes: number;
   abono_costo: number;
   abono_iva: number;
   metodo: string;
@@ -99,6 +100,13 @@ export default function HistorialPagosCredito({
                   etiqueta="Abono a capital"
                   valor={formatearDinero(
                     pago.abono_capital,
+                  )}
+                />
+
+                <DatoPago
+                  etiqueta="Abono a interés"
+                  valor={formatearDinero(
+                    pago.abono_interes,
                   )}
                 />
 

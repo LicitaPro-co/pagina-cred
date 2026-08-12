@@ -43,8 +43,7 @@ export default async function DetalleCreditoPage({
   }
 
   /*
-   * El filtro cliente_id = user.id es esencial:
-   * un cliente solamente puede consultar
+   * El cliente solamente puede consultar
    * créditos que le pertenecen.
    */
   const {
@@ -95,6 +94,10 @@ export default async function DetalleCreditoPage({
     notFound();
   }
 
+  /*
+   * Consultamos todos los pagos registrados
+   * sobre este crédito.
+   */
   const {
     data: pagos,
     error: errorPagos,
@@ -105,6 +108,7 @@ export default async function DetalleCreditoPage({
       estado,
       valor_pago,
       abono_capital,
+      abono_interes,
       abono_costo,
       abono_iva,
       metodo,
@@ -252,6 +256,11 @@ export default async function DetalleCreditoPage({
 
         abono_capital: Number(
           pago.abono_capital ??
+            0,
+        ),
+
+        abono_interes: Number(
+          pago.abono_interes ??
             0,
         ),
 
