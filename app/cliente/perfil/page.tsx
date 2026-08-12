@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import FormularioPerfil from "@/components/cliente/formulario-perfil";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export default async function PerfilClientePage() {
   const supabase = await createClient();
 
@@ -51,10 +53,29 @@ export default async function PerfilClientePage() {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (errorPerfil || !perfil) {
+  if (errorPerfil) {
+    console.error(
+      "Error consultando el perfil:",
+      errorPerfil.message,
+    );
+  }
+
+  if (!perfil) {
     redirect("/cliente");
   }
 
+  /*
+   * IMPORTANTE:
+   *
+   * Buscamos la cuenta principal aunque esté inactiva.
+   *
+   * Si existe una cuenta principal inactiva, el formulario
+   * debe actualizar esa misma cuenta y reactivarla.
+   *
+   * No debemos intentar insertar una segunda cuenta principal,
+   * porque la base de datos protege esa regla mediante el índice
+   * una_cuenta_principal_por_cliente.
+   */
   const {
     data: cuenta,
     error: errorCuenta,
@@ -75,7 +96,6 @@ export default async function PerfilClientePage() {
     `)
     .eq("cliente_id", user.id)
     .eq("es_principal", true)
-    .eq("activa", true)
     .order("creado_en", {
       ascending: false,
     })
@@ -84,7 +104,7 @@ export default async function PerfilClientePage() {
 
   if (errorCuenta) {
     console.error(
-      "Error consultando la cuenta de desembolso:",
+      "Error consultando la cuenta principal de desembolso:",
       errorCuenta.message,
     );
   }
