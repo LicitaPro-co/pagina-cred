@@ -9,7 +9,6 @@ export type PagoCreditoCliente = {
   valor_pago: number;
   abono_capital: number;
   abono_costo: number;
-  abono_interes: number;
   abono_iva: number;
   metodo: string;
   referencia: string | null;
@@ -36,7 +35,8 @@ export default function HistorialPagosCredito({
         </h2>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Consulta los pagos asociados a este crédito.
+          Consulta los pagos registrados y su aplicación
+          dentro del crédito.
         </p>
       </div>
 
@@ -47,8 +47,8 @@ export default function HistorialPagosCredito({
           </p>
 
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Este crédito todavía no tiene pagos o
-            comprobantes registrados.
+            Este crédito todavía no tiene pagos
+            registrados.
           </p>
         </div>
       ) : (
@@ -67,16 +67,26 @@ export default function HistorialPagosCredito({
                   </p>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    {nombreMetodo(pago.metodo)}
+                    {nombreMetodo(
+                      pago.metodo,
+                    )}
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-400">
+                    {pago.fecha_pago
+                      ? formatearFecha(
+                          pago.fecha_pago,
+                        )
+                      : "Fecha no registrada"}
                   </p>
                 </div>
 
-                <EstadoPago estado={pago.estado} />
+                <EstadoPago
+                  estado={pago.estado}
+                />
               </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                
-
                 <DatoPago
                   etiqueta="Referencia"
                   valor={
@@ -89,13 +99,6 @@ export default function HistorialPagosCredito({
                   etiqueta="Abono a capital"
                   valor={formatearDinero(
                     pago.abono_capital,
-                  )}
-                />
-
-                <DatoPago
-                  etiqueta="Abono a interés"
-                  valor={formatearDinero(
-                    pago.abono_interes,
                   )}
                 />
 
@@ -138,7 +141,10 @@ function EstadoPago({
 }: {
   estado: string;
 }) {
-  const estilos: Record<string, string> = {
+  const estilos: Record<
+    string,
+    string
+  > = {
     pendiente:
       "bg-amber-50 text-amber-800",
     confirmado:
@@ -151,7 +157,10 @@ function EstadoPago({
       "bg-slate-100 text-slate-600",
   };
 
-  const nombres: Record<string, string> = {
+  const nombres: Record<
+    string,
+    string
+  > = {
     pendiente: "Pendiente",
     confirmado: "Confirmado",
     aprobado: "Aprobado",
@@ -191,16 +200,31 @@ function DatoPago({
   );
 }
 
-function nombreMetodo(metodo: string) {
-  const nombres: Record<string, string> = {
+function nombreMetodo(
+  metodo: string,
+) {
+  const nombres: Record<
+    string,
+    string
+  > = {
     nequi: "Nequi",
     daviplata: "DaviPlata",
-    transferencia: "Transferencia bancaria",
+    "dale!": "dale!",
+    "bre-b": "Bre-B",
+    bre_b: "Bre-B",
+    pse: "PSE",
+    transferencia:
+      "Transferencia bancaria",
+    "transferencia bancaria":
+      "Transferencia bancaria",
     consignacion: "Consignación",
     efectivo: "Efectivo",
-    bre_b: "Bre-B",
     otro: "Otro",
   };
 
-  return nombres[metodo.toLowerCase()] ?? metodo;
+  return (
+    nombres[
+      metodo.toLowerCase()
+    ] ?? metodo
+  );
 }

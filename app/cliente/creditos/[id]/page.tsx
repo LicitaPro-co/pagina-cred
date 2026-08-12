@@ -4,23 +4,14 @@ import {
   redirect,
 } from "next/navigation";
 
-// The original component import was failing in some environments
-// Provide a local fallback declaration to avoid build errors.
-// If you have the real component available, replace this with the original import.
-type PagoCreditoCliente = {
-  id: string;
-  monto: number;
-  fecha: string;
-  detalle?: string;
-};
-
-function HistorialPagosCredito(_props: { pagos?: PagoCreditoCliente[] }) {
-  // minimal placeholder; real implementation should render payment history
-  return null;
-}
+import HistorialPagosCredito, {
+  type PagoCreditoCliente,
+} from "@/components/credito/historial-pagos-credito";
 import ResumenCredito from "@/components/credito/resumen-credito";
 import type { CreditoCliente } from "@/components/credito/tarjeta-credito";
 import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{
@@ -33,7 +24,12 @@ export default async function DetalleCreditoPage({
 }: Props) {
   const { id } = await params;
 
-  const supabase = await createClient();
+  if (!esUuidValido(id)) {
+    notFound();
+  }
+
+  const supabase =
+    await createClient();
 
   const {
     data: { user },
@@ -41,9 +37,16 @@ export default async function DetalleCreditoPage({
   } = await supabase.auth.getUser();
 
   if (errorUsuario || !user) {
-    redirect("/iniciar-sesion");
+    redirect(
+      "/iniciar-sesion",
+    );
   }
 
+  /*
+   * El filtro cliente_id = user.id es esencial:
+   * un cliente solamente puede consultar
+   * créditos que le pertenecen.
+   */
   const {
     data: credito,
     error: errorCredito,
@@ -73,10 +76,22 @@ export default async function DetalleCreditoPage({
       creado_en
     `)
     .eq("id", id)
-    .eq("cliente_id", user.id)
+    .eq(
+      "cliente_id",
+      user.id,
+    )
     .maybeSingle();
 
-  if (errorCredito || !credito) {
+  if (errorCredito) {
+    console.error(
+      "Error consultando crédito:",
+      errorCredito.message,
+    );
+
+    notFound();
+  }
+
+  if (!credito) {
     notFound();
   }
 
@@ -97,117 +112,181 @@ export default async function DetalleCreditoPage({
       fecha_pago,
       observacion
     `)
-    .eq("credito_id", id)
-    .eq("cliente_id", user.id)
-    .order("fecha_pago", {
-      ascending: false,
-    });
+    .eq(
+      "credito_id",
+      id,
+    )
+    .eq(
+      "cliente_id",
+      user.id,
+    )
+    .order(
+      "fecha_pago",
+      {
+        ascending: false,
+      },
+    );
 
   if (errorPagos) {
     console.error(
       "Error cargando pagos del crédito:",
-      errorPagos,
+      errorPagos.message,
     );
   }
 
-  const creditoNormalizado: CreditoCliente = {
-    id: String(credito.id),
+  const creditoNormalizado: CreditoCliente =
+    {
+      id: String(
+        credito.id,
+      ),
 
-    estado: String(
-      credito.estado ?? "",
-    ),
+      estado: String(
+        credito.estado ?? "",
+      ),
 
-    monto_aprobado: Number(
-      credito.monto_aprobado ?? 0,
-    ),
+      monto_aprobado: Number(
+        credito.monto_aprobado ??
+          0,
+      ),
 
-    plazo_dias: Number(
-      credito.plazo_dias ?? 0,
-    ),
+      plazo_dias: Number(
+        credito.plazo_dias ?? 0,
+      ),
 
-    valor_interes: Number(
-      credito.valor_interes ?? 0,
-    ),
+      valor_interes: Number(
+        credito.valor_interes ??
+          0,
+      ),
 
-    valor_costo_base: Number(
-      credito.valor_costo_base ?? 0,
-    ),
+      valor_costo_base: Number(
+        credito.valor_costo_base ??
+          0,
+      ),
 
-    valor_iva: Number(
-      credito.valor_iva ?? 0,
-    ),
+      valor_iva: Number(
+        credito.valor_iva ?? 0,
+      ),
 
-    valor_total_pagar: Number(
-      credito.valor_total_pagar ?? 0,
-    ),
+      valor_total_pagar: Number(
+        credito.valor_total_pagar ??
+          0,
+      ),
 
-    saldo_capital: Number(
-      credito.saldo_capital ?? 0,
-    ),
+      saldo_capital: Number(
+        credito.saldo_capital ??
+          0,
+      ),
 
-    saldo_interes: Number(
-      credito.saldo_interes ?? 0,
-    ),
+      saldo_interes: Number(
+        credito.saldo_interes ??
+          0,
+      ),
 
-    saldo_costo: Number(
-      credito.saldo_costo ?? 0,
-    ),
+      saldo_costo: Number(
+        credito.saldo_costo ??
+          0,
+      ),
 
-    saldo_iva: Number(
-      credito.saldo_iva ?? 0,
-    ),
+      saldo_iva: Number(
+        credito.saldo_iva ?? 0,
+      ),
 
-    saldo_total: Number(
-      credito.saldo_total ?? 0,
-    ),
+      saldo_total: Number(
+        credito.saldo_total ??
+          0,
+      ),
 
-    total_pagado: Number(
-      credito.total_pagado ?? 0,
-    ),
+      total_pagado: Number(
+        credito.total_pagado ??
+          0,
+      ),
 
-    fecha_desembolso:
-      typeof credito.fecha_desembolso ===
-      "string"
-        ? credito.fecha_desembolso
-        : null,
+      fecha_desembolso:
+        typeof credito.fecha_desembolso ===
+        "string"
+          ? credito.fecha_desembolso
+          : null,
 
-    fecha_vencimiento:
-      typeof credito.fecha_vencimiento ===
-      "string"
-        ? credito.fecha_vencimiento
-        : null,
+      fecha_vencimiento:
+        typeof credito.fecha_vencimiento ===
+        "string"
+          ? credito.fecha_vencimiento
+          : null,
 
-    fecha_ultimo_pago:
-      typeof credito.fecha_ultimo_pago ===
-      "string"
-        ? credito.fecha_ultimo_pago
-        : null,
+      fecha_ultimo_pago:
+        typeof credito.fecha_ultimo_pago ===
+        "string"
+          ? credito.fecha_ultimo_pago
+          : null,
 
-    fecha_pago_total:
-      typeof credito.fecha_pago_total ===
-      "string"
-        ? credito.fecha_pago_total
-        : null,
+      fecha_pago_total:
+        typeof credito.fecha_pago_total ===
+        "string"
+          ? credito.fecha_pago_total
+          : null,
 
-    dias_mora: Number(
-      credito.dias_mora ?? 0,
-    ),
+      dias_mora: Number(
+        credito.dias_mora ?? 0,
+      ),
 
-    creado_en: String(
-      credito.creado_en ?? "",
-    ),
-  };
+      creado_en: String(
+        credito.creado_en ?? "",
+      ),
+    };
 
   const pagosNormalizados: PagoCreditoCliente[] =
-    (pagos ?? []).map((pago: any) => ({
-      id: String(pago.id),
-      monto: Number(pago.valor_pago ?? 0),
-      fecha: String(pago.fecha_pago ?? ""),
-      detalle:
-        typeof pago.observacion === "string"
-          ? pago.observacion
-          : undefined,
-    }));
+    (pagos ?? []).map(
+      (pago) => ({
+        id: String(
+          pago.id,
+        ),
+
+        estado: String(
+          pago.estado ??
+            "confirmado",
+        ),
+
+        valor_pago: Number(
+          pago.valor_pago ?? 0,
+        ),
+
+        abono_capital: Number(
+          pago.abono_capital ??
+            0,
+        ),
+
+        abono_costo: Number(
+          pago.abono_costo ??
+            0,
+        ),
+
+        abono_iva: Number(
+          pago.abono_iva ?? 0,
+        ),
+
+        metodo: String(
+          pago.metodo ??
+            "Otro",
+        ),
+
+        referencia:
+          typeof pago.referencia ===
+          "string"
+            ? pago.referencia
+            : null,
+
+        fecha_pago: String(
+          pago.fecha_pago ??
+            "",
+        ),
+
+        observacion:
+          typeof pago.observacion ===
+          "string"
+            ? pago.observacion
+            : null,
+      }),
+    );
 
   return (
     <main className="min-h-screen bg-[#fff8ee] px-5 py-10">
@@ -223,8 +302,9 @@ export default async function DetalleCreditoPage({
             </h1>
 
             <p className="mt-3 text-slate-600">
-              Consulta el saldo, vencimiento y
-              movimientos de tu crédito.
+              Consulta el saldo,
+              vencimiento y movimientos
+              de tu crédito.
             </p>
           </div>
 
@@ -238,14 +318,26 @@ export default async function DetalleCreditoPage({
 
         <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
           <ResumenCredito
-            credito={creditoNormalizado}
+            credito={
+              creditoNormalizado
+            }
           />
 
           <HistorialPagosCredito
-            pagos={pagosNormalizados}
+            pagos={
+              pagosNormalizados
+            }
           />
         </div>
       </div>
     </main>
+  );
+}
+
+function esUuidValido(
+  valor: string,
+) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    valor,
   );
 }
