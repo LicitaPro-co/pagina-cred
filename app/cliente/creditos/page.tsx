@@ -86,7 +86,10 @@ export default async function ClientePage() {
   } = await supabase
     .from("creditos")
     .select("*")
-    .eq("id_cliente", user.id);
+    .eq("cliente_id", user.id)
+    .order("creado_en", {
+      ascending: false,
+    });
 
   if (errorCreditos) {
     throw new Error(
