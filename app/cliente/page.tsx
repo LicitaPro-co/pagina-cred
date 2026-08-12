@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import BotonCerrarSesion from "@/components/auth/boton-cerrar-sesion";
 import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 type NivelCredito = {
   numero_nivel: number;
@@ -108,7 +111,7 @@ export default async function ClientePage() {
     .eq("cliente_id", user.id)
     .in("estado", [
       "pendiente",
-      "en_estudio",
+      "en_revision",
       "aprobada",
     ])
     .order("created_at", {
@@ -132,7 +135,7 @@ export default async function ClientePage() {
       fecha_vencimiento
     `)
     .eq("cliente_id", user.id)
-    .in("estado", ["activo", "vencido"])
+    .in("estado", ["pendiente_desembolso", "activo", "vencido"])
     .order("fecha_desembolso", {
       ascending: false,
     })
@@ -217,12 +220,16 @@ export default async function ClientePage() {
             </h1>
           </div>
 
-          <Link
-            href="/"
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
-          >
-            Ir al inicio
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+            >
+              Ir al inicio
+            </Link>
+
+            <BotonCerrarSesion />
+          </div>
         </header>
 
         <section className="mt-10 grid gap-5 md:grid-cols-3">
