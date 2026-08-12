@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import BotonCerrarSesion from "@/components/auth/boton-cerrar-sesion";
 import NavegacionAdministrativa from "@/components/administrador/navegacion-administrativa";
 import { createClient } from "@/lib/supabase/server";
 
@@ -45,13 +46,18 @@ export default async function AdministradorLayout({
     errorPerfil ||
     !perfil ||
     perfil.estado !== "activo" ||
-    !ROLES_ADMINISTRATIVOS.includes(String(perfil.rol))
+    !ROLES_ADMINISTRATIVOS.includes(
+      String(perfil.rol),
+    )
   ) {
     redirect("/cliente");
   }
 
   const nombreAdministrador =
-    [perfil.nombres, perfil.apellidos]
+    [
+      perfil.nombres,
+      perfil.apellidos,
+    ]
       .filter(Boolean)
       .join(" ")
       .trim() || "Administrador";
@@ -59,12 +65,22 @@ export default async function AdministradorLayout({
   return (
     <div className="min-h-screen bg-[#fff8ee]">
       <NavegacionAdministrativa
-        nombreAdministrador={nombreAdministrador}
-        rolAdministrador={String(perfil.rol)}
+        nombreAdministrador={
+          nombreAdministrador
+        }
+        rolAdministrador={String(
+          perfil.rol,
+        )}
       />
 
       <div className="lg:pl-72">
-        <div className="min-h-screen">{children}</div>
+        <div className="sticky top-0 z-30 flex justify-end border-b border-[#eadfce] bg-[#fff8ee]/95 px-5 py-3 backdrop-blur lg:px-8">
+          <BotonCerrarSesion />
+        </div>
+
+        <div className="min-h-screen">
+          {children}
+        </div>
       </div>
     </div>
   );
