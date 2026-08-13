@@ -12,10 +12,14 @@ type NivelCredito = {
   incremento_monto: number;
   plazos_dias: number[];
   modalidad_credito: string;
-  tasa_interes_ea: number;
   porcentaje_costo: number;
   valor_costo_fijo: number;
   porcentaje_iva: number;
+};
+
+type TasaCreditoPlazo = {
+  plazo_dias: number;
+  tasa_interes_ea: number;
 };
 
 type ConfiguracionCredito = {
@@ -47,6 +51,7 @@ type OperacionActiva = {
 type Props = {
   nombre?: string;
   nivel: NivelCredito;
+  tasasPorPlazo: TasaCreditoPlazo[];
   configuracion?: ConfiguracionCredito;
   cupoActual: number;
   cuenta: CuentaDesembolso | null;
@@ -62,6 +67,7 @@ type RespuestaApi = {
 export default function SimuladorCredito({
   nombre,
   nivel,
+  tasasPorPlazo,
   configuracion,
   cupoActual,
   cuenta,
@@ -200,9 +206,11 @@ export default function SimuladorCredito({
   const [esError, setEsError] =
     useState(false);
 
-  const tasaInteresEa = Number(
-    nivel.tasa_interes_ea ?? 0,
-  );
+  const tasaInteresEa =
+    obtenerTasaPorPlazo(
+      tasasPorPlazo,
+      plazoSeleccionado,
+    );
 
   /*
    * El navegador calcula únicamente una simulación.
@@ -610,7 +618,11 @@ export default function SimuladorCredito({
                         plazoDias:
                           dias,
 
-                        tasaInteresEa,
+                        tasaInteresEa:
+                          obtenerTasaPorPlazo(
+                            tasasPorPlazo,
+                            dias,
+                          ),
 
                         porcentajeCosto:
                           Number(
@@ -717,20 +729,6 @@ export default function SimuladorCredito({
                 <FilaResumen
                   etiqueta="Plazo"
                   valor={`${plazoSeleccionado} días`}
-                />
-
-                <FilaResumen
-                  etiqueta="Tasa de interés"
-                  valor={`${tasaInteresEa.toFixed(
-                    2,
-                  )} % E.A.`}
-                />
-
-                <FilaResumen
-                  etiqueta="Tasa aproximada del plazo"
-                  valor={`${resultado.tasaPeriodoPorcentaje.toFixed(
-                    4,
-                  )} %`}
                 />
 
                 <FilaResumen
@@ -948,6 +946,21 @@ function calcularCredito({
         plazoDias,
       ),
   };
+}
+
+function obtenerTasaPorPlazo(
+  tasas: TasaCreditoPlazo[],
+  plazoDias: number,
+) {
+  const tasa = tasas.find(
+    (registro) =>
+      Number(registro.plazo_dias) ===
+      Number(plazoDias),
+  );
+
+  return Number(
+    tasa?.tasa_interes_ea ?? 0,
+  );
 }
 
 function generarPlazos(
