@@ -9,6 +9,12 @@ export type EstadoInicioSesion = {
   error: string | null;
 };
 
+const ROLES_ADMINISTRATIVOS = [
+  "analista",
+  "administrador",
+  "superadministrador",
+];
+
 export async function iniciarSesion(
   _estadoAnterior: EstadoInicioSesion,
   formData: FormData,
@@ -37,26 +43,91 @@ export async function iniciarSesion(
 
   const supabase = await createClient();
 
-  const { error } =
-    await supabase.auth.signInWithPassword({
-      email: correo,
-      password: contrasena,
-    });
+  const {
+    data: resultadoInicio,
+    error: errorInicio,
+  } = await supabase.auth.signInWithPassword({
+    email: correo,
+    password: contrasena,
+  });
 
-  if (error) {
+  if (errorInicio) {
     console.error(
       "Error iniciando sesión:",
-      error.message,
+      errorInicio.message,
     );
 
     return {
       error: traducirError(
-        error.message,
+        errorInicio.message,
       ),
     };
   }
 
+  const usuario =
+    resultadoInicio.user;
+
+  if (!usuario) {
+    return {
+      error:
+        "No fue posible identificar el usuario autenticado.",
+    };
+  }
+
+  const {
+    data: perfil,
+    error: errorPerfil,
+  } = await supabase
+    .from("perfiles")
+    .select(`
+      rol,
+      estado
+    `)
+    .eq("id", usuario.id)
+    .maybeSingle();
+
+  if (errorPerfil) {
+    console.error(
+      "Error consultando el perfil:",
+      errorPerfil.message,
+    );
+
+    await supabase.auth.signOut();
+
+    return {
+      error:
+        "No fue posible consultar tu perfil de acceso.",
+    };
+  }
+
+  if (!perfil) {
+    await supabase.auth.signOut();
+
+    return {
+      error:
+        "No existe un perfil asociado a este usuario.",
+    };
+  }
+
+  if (perfil.estado !== "activo") {
+    await supabase.auth.signOut();
+
+    return {
+      error:
+        "Tu usuario no se encuentra habilitado para ingresar.",
+    };
+  }
+
   revalidatePath("/", "layout");
+
+  if (
+    ROLES_ADMINISTRATIVOS.includes(
+      String(perfil.rol),
+    )
+  ) {
+    redirect("/administrador");
+  }
+
   redirect("/cliente");
 }
 
@@ -76,16 +147,26 @@ function traducirError(
   }
 
   if (
-    error.includes("email not confirmed")
+    error.includes(
+      "email not confirmed",
+    )
   ) {
     return "Debes confirmar tu correo electrónico antes de ingresar.";
   }
 
-  if (error.includes("refresh token")) {
+  if (
+    error.includes(
+      "refresh token",
+    )
+  ) {
     return "La sesión anterior venció. Recarga la página e intenta nuevamente.";
   }
 
-  if (error.includes("failed to fetch")) {
+  if (
+    error.includes(
+      "failed to fetch",
+    )
+  ) {
     return "No fue posible conectarse con el servidor.";
   }
 
