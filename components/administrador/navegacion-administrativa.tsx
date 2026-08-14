@@ -49,6 +49,11 @@ const OPCIONES = [
     icono: "▥",
   },
   {
+    href: "/administrador/auditoria",
+    etiqueta: "Auditoría",
+    icono: "⌕",
+  },
+  {
     href: "/administrador/configuracion",
     etiqueta: "Configuración",
     icono: "⚙",
