@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import FormularioConfiguracion from "@/components/administrador/formulario-configuracion";
 import FormularioTasasPlazo from "@/components/administrador/formulario-tasas-plazo";
+import FormularioNivelesCredito from "@/components/administrador/formulario-niveles-credito";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ConfiguracionPage() {
@@ -125,6 +126,31 @@ export default async function ConfiguracionPage() {
     console.error(
       "Error consultando tasas:",
       errorTasas,
+    );
+  }
+
+  const {
+    data: nivelesCredito,
+    error: errorNiveles,
+  } = await supabase
+    .from("niveles_credito")
+    .select(`
+      numero_nivel,
+      nombre,
+      monto_maximo,
+      incremento_monto,
+      creditos_pagados_requeridos,
+      puntaje_minimo,
+      activo
+    `)
+    .order("numero_nivel", {
+      ascending: true,
+    });
+
+  if (errorNiveles) {
+    console.error(
+      "Error consultando niveles:",
+      errorNiveles,
     );
   }
 
@@ -267,6 +293,36 @@ export default async function ConfiguracionPage() {
                 ),
                 tasaInteresEa: Number(
                   tasa.tasa_interes_ea,
+                ),
+              }),
+            )}
+          />
+        </section>
+
+        <section className="mt-6">
+          <FormularioNivelesCredito
+            niveles={(nivelesCredito ?? []).map(
+              (nivel) => ({
+                numeroNivel: Number(
+                  nivel.numero_nivel,
+                ),
+                nombre: String(
+                  nivel.nombre ?? "",
+                ),
+                montoMaximo: Number(
+                  nivel.monto_maximo ?? 0,
+                ),
+                incrementoMonto: Number(
+                  nivel.incremento_monto ?? 10000,
+                ),
+                creditosRequeridos: Number(
+                  nivel.creditos_pagados_requeridos ?? 0,
+                ),
+                puntajeMinimo: Number(
+                  nivel.puntaje_minimo ?? 0,
+                ),
+                activo: Boolean(
+                  nivel.activo,
                 ),
               }),
             )}
