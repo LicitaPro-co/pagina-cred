@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import FormularioConfiguracion from "@/components/administrador/formulario-configuracion";
+import FormularioTasasPlazo from "@/components/administrador/formulario-tasas-plazo";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ConfiguracionPage() {
@@ -95,6 +96,35 @@ export default async function ConfiguracionPage() {
           </section>
         </div>
       </main>
+    );
+  }
+
+  const {
+    data: tasasPlazo,
+    error: errorTasas,
+  } = await supabase
+    .from("tasas_credito_plazo")
+    .select(`
+      plazo_dias,
+      tasa_interes_ea,
+      activo,
+      fecha_inicio_vigencia
+    `)
+    .eq("activo", true)
+    .lte(
+      "fecha_inicio_vigencia",
+      new Date()
+        .toISOString()
+        .slice(0, 10),
+    )
+    .order("plazo_dias", {
+      ascending: true,
+    });
+
+  if (errorTasas) {
+    console.error(
+      "Error consultando tasas:",
+      errorTasas,
     );
   }
 
@@ -225,6 +255,21 @@ export default async function ConfiguracionPage() {
                 configuracion.tasa_validada_juridicamente,
               ),
             }}
+          />
+        </section>
+
+        <section className="mt-6">
+          <FormularioTasasPlazo
+            tasas={(tasasPlazo ?? []).map(
+              (tasa) => ({
+                plazoDias: Number(
+                  tasa.plazo_dias,
+                ),
+                tasaInteresEa: Number(
+                  tasa.tasa_interes_ea,
+                ),
+              }),
+            )}
           />
         </section>
 
