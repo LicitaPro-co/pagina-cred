@@ -12,8 +12,6 @@ type Body = {
   motivo?: string;
 };
 
-const PLAZOS_PERMITIDOS = [2, 4, 6, 8, 10];
-
 export async function PATCH(request: Request) {
   try {
     const supabase = await createClient();
@@ -96,12 +94,12 @@ export async function PATCH(request: Request) {
 
     if (
       !Array.isArray(body.tasas) ||
-      body.tasas.length !== PLAZOS_PERMITIDOS.length
+      body.tasas.length !== 5
     ) {
       return NextResponse.json(
         {
           error:
-            "Debes enviar la configuración completa de tasas.",
+            "Debes enviar exactamente cinco tasas.",
         },
         {
           status: 400,
@@ -109,7 +107,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const tasasNormalizadas = body.tasas.map(
+    const tasas = body.tasas.map(
       (registro) => ({
         plazoDias: Number(
           registro.plazoDias,
@@ -120,59 +118,23 @@ export async function PATCH(request: Request) {
       }),
     );
 
-    for (const registro of tasasNormalizadas) {
-      if (
-        !PLAZOS_PERMITIDOS.includes(
-          registro.plazoDias,
-        )
-      ) {
-        return NextResponse.json(
-          {
-            error: `El plazo ${registro.plazoDias} días no está permitido.`,
-          },
-          {
-            status: 400,
-          },
-        );
-      }
+    const { data, error } = await supabase.rpc(
+      "actualizar_tasas_credito_plazo",
+      {
+        p_tasas: tasas,
+        p_motivo: motivo,
+      },
+    );
 
-      if (
-        !Number.isFinite(
-          registro.tasaInteresEa,
-        ) ||
-        registro.tasaInteresEa < 0 ||
-        registro.tasaInteresEa > 100
-      ) {
-        return NextResponse.json(
-          {
-            error: `La tasa para ${registro.plazoDias} días no es válida.`,
-          },
-          {
-            status: 400,
-          },
-        );
-      }
-    }
+    if (error) {
+      console.error(
+        "Error actualizando tasas:",
+        error,
+      );
 
-    const plazosRecibidos = tasasNormalizadas
-      .map(
-        (registro) =>
-          registro.plazoDias,
-      )
-      .sort((a, b) => a - b);
-
-    const plazosEsperados = [
-      ...PLAZOS_PERMITIDOS,
-    ].sort((a, b) => a - b);
-
-    if (
-      JSON.stringify(plazosRecibidos) !==
-      JSON.stringify(plazosEsperados)
-    ) {
       return NextResponse.json(
         {
-          error:
-            "La configuración debe incluir exactamente los plazos 2, 4, 6, 8 y 10 días.",
+          error: error.message,
         },
         {
           status: 400,
@@ -180,70 +142,9 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const ordenadas = [
-      ...tasasNormalizadas,
-    ].sort(
-      (a, b) =>
-        a.plazoDias - b.plazoDias,
-    );
-
-    for (
-      let indice = 1;
-      indice < ordenadas.length;
-      indice += 1
-    ) {
-      if (
-        ordenadas[indice].tasaInteresEa <
-        ordenadas[indice - 1].tasaInteresEa
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "Las tasas deben ser iguales o progresivas a medida que aumenta el plazo.",
-          },
-          {
-            status: 400,
-          },
-        );
-      }
-    }
-
-    for (const registro of tasasNormalizadas) {
-      const { error } = await supabase
-        .from("tasas_credito_plazo")
-        .update({
-          tasa_interes_ea:
-            registro.tasaInteresEa,
-          actualizado_en:
-            new Date().toISOString(),
-        })
-        .eq(
-          "plazo_dias",
-          registro.plazoDias,
-        )
-        .eq("activo", true);
-
-      if (error) {
-        console.error(
-          "Error actualizando tasa:",
-          registro,
-          error,
-        );
-
-        return NextResponse.json(
-          {
-            error:
-              "No fue posible actualizar las tasas.",
-          },
-          {
-            status: 400,
-          },
-        );
-      }
-    }
-
     return NextResponse.json({
       ok: true,
+      actualizado: Boolean(data),
     });
   } catch (error) {
     console.error(
